@@ -140,3 +140,51 @@ app.get("/me", authenticateToken, (req: AuthRequest, res) => {
 app.listen(PORT, () => {
   console.log(`NanoMinion API running on port ${PORT}`);
 });
+
+
+app.post("/jobs", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { type, payload } = req.body;
+
+    if (!type || !payload) {
+      return res.status(400).json({ error: "Type and payload required" });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO jobs (user_id, type, payload)
+       VALUES ($1, $2, $3)
+       RETURNING id, status, created_at`,
+      [req.user.userId, type, payload]
+    );
+
+    res.status(201).json({
+      message: "Job created",
+      job: result.rows[0],
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+app.get("/jobs/:id", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `SELECT * FROM jobs
+       WHERE id = $1 AND user_id = $2`,
+      [id, req.user.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
