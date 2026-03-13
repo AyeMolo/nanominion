@@ -1,21 +1,22 @@
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import express from "express";
-import cors from "cors";
-import pool from "./db";
+import jwt from "jsonwebtoken"; //creates and verifies the login tokens.
+import bcrypt from "bcrypt"; // hashes and compreses the passwords
+import express from "express"; //framework
+import cors from "cors"; //allows browser request from different origines.
+import pool from "./db"; // postgreSQL connection
 import { Request, Response, NextFunction } from "express";
 
 
 const JWT_SECRET = "supersecret";
 
-const app = express();
-const PORT = 4000;
+
+const app = express(); //server instance
+const PORT = 4000; //which port its listening to.
 
 //-------------------------------------------------------------------------
 interface AuthRequest extends Request {
   user?: any;
 }
-
+//middleware
 function authenticateToken(
   req: AuthRequest,
   res: Response,
@@ -54,7 +55,7 @@ app.get("/health", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Database connection failed" });
   }
-});
+}); 
 
 app.post("/register", async (req, res) => {
   try {
@@ -88,6 +89,12 @@ app.post("/register", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+/**
+ * curl -X POST http://localhost:4000/register \
+ * -H "Content-Type: application/json" \
+ * -d '{"email":"YOUR_EMAIL","password":"YOUR_PASSWORD"}'
+ */
 
 app.post("/login", async (req, res) => {
   try {
@@ -130,12 +137,23 @@ app.post("/login", async (req, res) => {
   }
 });
 
+/** AFTER REG 
+ * curl -X POST http://localhost:4000/login \
+ * -H "Content-Type: application/json" \
+ * -d '{"email":"YOUR_EMAIL","password":"YOUR_PASSWORD"}'
+ */
+
 app.get("/me", authenticateToken, (req: AuthRequest, res) => {
   res.json({
     message: "Protected route accessed",
     user: req.user,
   });
 });
+
+/** AFTER REG
+ * curl http://localhost:4000/me \
+ * -H "Authorization: Bearer YOUR_TOKEN_HERE"
+ */
 
 app.listen(PORT, () => {
   console.log(`NanoMinion API running on port ${PORT}`);
@@ -166,6 +184,13 @@ app.post("/jobs", authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+/**
+ * curl -X POST http://localhost:4000/jobs \
+ * -H "Content-Type: application/json" \
+ * -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+ * -d '{"type":"delay","payload":{"seconds":5}}'
+ */
 
 
 app.get("/jobs/:id", authenticateToken, async (req: AuthRequest, res) => {
